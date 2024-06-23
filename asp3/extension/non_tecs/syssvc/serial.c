@@ -404,7 +404,8 @@ serial_cls_por(ID portid)
  *  い場合には，送信レジスタが空いたことを通知するコールバック関数を許
  *  可し，falseを返す．この関数は，CPUロック状態で呼び出される．
  */
-Inline bool_t
+//Inline bool_t
+bool_t
 serial_snd_chr(SPCB *p_spcb, char c)
 {
 	if (sio_snd_chr(p_spcb->p_siopcb, c)) {
@@ -472,6 +473,7 @@ serial_wri_chr(SPCB *p_spcb, char c)
 ER_UINT
 serial_wri_dat(ID portid, const char *buf, uint_t len)
 {
+	aaa
 	SPCB	*p_spcb;
 	bool_t	buffer_full;
 	uint_t	wricnt = 0U;

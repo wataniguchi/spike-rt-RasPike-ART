@@ -11,7 +11,7 @@
 #include <serial/serial.h>
 #include <spike/hub/system.h>
 #include <spike/pup/motor.h>
-#include "app_config.h"
+//#include "app_config.h"
 #include "motor.h"
 
 
@@ -28,13 +28,13 @@ main_task(intptr_t exinf)
   
   // 以下のようにNewlib経由でシリアル入出力できる．
   //extern FILE* serial_open_newlib_file(ID portid);
-  //FILE *fd = serial_open_newlib_file(SIO_USB_PORTID);
-  //fprintf(fd, "Set Up Motor\n");
+//  FILE *fd = serial_open_newlib_file(SIO_USB_PORTID);
+//  fprintf(fd, "Set Up Motor\n");
 
   syslog(LOG_NOTICE, "Set Up Motor\n");
 
   // Get pointer to servo
-  motor = pup_motor_get_device(PBIO_PORT_ID_MOTOR);
+  motor = pup_motor_get_device(PBIO_PORT_ID_D);
   if(motor == NULL) {
     hub_system_shutdown();
   }

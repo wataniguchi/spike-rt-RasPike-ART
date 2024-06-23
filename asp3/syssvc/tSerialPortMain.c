@@ -247,7 +247,8 @@ eSerialPort_close(CELLIDX idx)
  *  でない場合には，送信レジスタが空いたことを通知するコールバック関数
  *  を許可し，falseを返す．この関数は，CPUロック状態で呼び出される．
  */
-Inline bool_t
+//Inline bool_t
+extern bool_t
 serialPort_sendChar(CELLCB *p_cellcb, char c)
 {
 	if (cSIOPort_putChar(c)) {
