@@ -36,9 +36,9 @@ import("target.cdl");
  *  サービスコール（syslog，syslog_0〜syslog_5，t_perrorを含む）を呼び
  *  出さない場合には，以下のセルの組上げ記述を削除してよい．
  */
-cell tSysLogAdapter SysLogAdapter {
-	cSysLog = SysLog.eSysLog;
-};
+//cell tSysLogAdapter SysLogAdapter {
+//	cSysLog = SysLog.eSysLog;
+//};
 
 /*
  *		シリアルインタフェースドライバのアダプタの組上げ記述
@@ -48,9 +48,9 @@ cell tSysLogAdapter SysLogAdapter {
  *  セルである．シリアルインタフェースドライバのサービスコールを呼び出
  *  さない場合には，以下のセルの組上げ記述を削除してよい．
  */
-cell tSerialAdapter SerialAdapter {
-	cSerialPort[0] = SerialPort1.eSerialPort;
-};
+//cell tSerialAdapter SerialAdapter {
+//	cSerialPort[0] = SerialPort1.eSerialPort;
+//};
 
 /*
  *		システムログ機能の組上げ記述
@@ -61,15 +61,15 @@ cell tSerialAdapter SerialAdapter {
  *  が必要である．また，システムログ機能のアダプタも外さなければならな
  *  い．tecsgenが警告メッセージを出すが，無視してよい．
  */
-cell tSysLog SysLog {
-	logBufferSize = 32;					/* ログバッファのサイズ */
-	initLogMask = C_EXP("LOG_UPTO(LOG_NOTICE)");
+//cell tSysLog SysLog {
+//	logBufferSize = 32;					/* ログバッファのサイズ */
+//	initLogMask = C_EXP("LOG_UPTO(LOG_NOTICE)");
 										/* ログバッファに記録すべき重要度 */
-	initLowMask = C_EXP("LOG_UPTO(LOG_EMERG)");
+//	initLowMask = C_EXP("LOG_UPTO(LOG_EMERG)");
 										/* 低レベル出力すべき重要度 */
 	/* 低レベル出力との結合 */
-	cPutLog = PutLogTarget.ePutLog;
-};
+//	cPutLog = PutLogTarget.ePutLog;
+//};
 
 /*
  *		シリアルインタフェースドライバの組上げ記述
@@ -79,14 +79,14 @@ cell tSysLog SysLog {
  *  スドライバを使用するため，それも外すことが必要である．また，シリア
  *  ルインタフェースドライバのアダプタも外さなければならない．
  */
-cell tSerialPort SerialPort1 {
-	receiveBufferSize = 256;			/* 受信バッファのサイズ */
-	sendBufferSize    = 256;			/* 送信バッファのサイズ */
+//cell tSerialPort SerialPort1 {
+//	receiveBufferSize = 256;			/* 受信バッファのサイズ */
+//	sendBufferSize    = 256;			/* 送信バッファのサイズ */
 
 	/* ターゲット依存部との結合 */
-	cSIOPort = SIOPortTarget1.eSIOPort;
-	eiSIOCBR <= SIOPortTarget1.ciSIOCBR;	/* コールバック */
-};
+//	cSIOPort = SIOPortTarget1.eSIOPort;
+//	eiSIOCBR <= SIOPortTarget1.ciSIOCBR;	/* コールバック */
+//};
 
 /*
  *		システムログタスクの組上げ記述
@@ -94,20 +94,20 @@ cell tSerialPort SerialPort1 {
  *  システムログタスクを外す場合には，以下のセルの組上げ記述を削除すれ
  *  ばよい．
  */
-cell tLogTask LogTask {
-	priority  = 3;					/* システムログタスクの優先度 */
-	stackSize = LogTaskStackSize;	/* システムログタスクのスタックサイズ */
+//cell tLogTask LogTask {
+//	priority  = 3;					/* システムログタスクの優先度 */
+//	stackSize = LogTaskStackSize;	/* システムログタスクのスタックサイズ */
 
 	/* シリアルインタフェースドライバとの結合 */
-	cSerialPort        = SerialPort1.eSerialPort;
-	cnSerialPortManage = SerialPort1.enSerialPortManage;
+//	cSerialPort        = SerialPort1.eSerialPort;
+//	cnSerialPortManage = SerialPort1.enSerialPortManage;
 
 	/* システムログ機能との結合 */
-	cSysLog = SysLog.eSysLog;
+//	cSysLog = SysLog.eSysLog;
 
 	/* 低レベル出力との結合 */
-	cPutLog = PutLogTarget.ePutLog;
-};
+//	cPutLog = PutLogTarget.ePutLog;
+//};
 
 /*
  *		カーネル起動メッセージ出力の組上げ記述

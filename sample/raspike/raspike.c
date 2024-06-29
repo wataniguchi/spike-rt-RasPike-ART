@@ -27,7 +27,7 @@
 #include "raspike.h"
 #define RP_DEFINE_CMD_SIZE
 #include "raspike_protocol_com.h"
-#include "tPutLogTarget_tecsgen.h"
+//#include "tPutLogTarget_tecsgen.h"
 
 #define RP_MAX_DEVICES (6)
 

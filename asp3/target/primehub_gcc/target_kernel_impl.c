@@ -116,7 +116,7 @@ target_initialize(void)
 	/*
 	 *  バーナー出力用のシリアル初期化
 	 */
-	usart_early_init();
+//	usart_early_init();
 }
 
 void
@@ -164,6 +164,7 @@ target_exit(void)
 	while(1);
 }
 
+#if 0
 static UART_HandleTypeDef UartHandle;
 
 void
@@ -184,6 +185,7 @@ usart_early_init()
 		Error_Handler();
 	}
 };
+#endif
 
 /*
  * エラー発生時の処理

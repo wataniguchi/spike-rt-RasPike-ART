@@ -77,43 +77,43 @@
 /*
  *  USART関連の定義
  */
-#define USART_INTNO (UART9_IRQn + 16)
-#define USART_NAME  UART9
-#define USART_BASE  UART9_BASE 
+//#define USART_INTNO (UART9_IRQn + 16)
+//#define USART_NAME  UART9
+//#define USART_BASE  UART9_BASE 
 
 /*
  *  ボーレート
  */
-#define BPS_SETTING  (115200)
+//#define BPS_SETTING  (115200)
 
 #ifndef TOPPERS_MACRO_ONLY
 #ifndef TECSGEN
 /*
  *  UsartのクロックとIOの初期化
  */
-Inline void
-usart_low_init(void) {
-	GPIO_InitTypeDef  GPIO_InitStruct;
+//Inline void
+//usart_low_init(void) {
+//	GPIO_InitTypeDef  GPIO_InitStruct;
 
 	/* Enable Clock */
-	__HAL_RCC_GPIOD_CLK_ENABLE();
-	__HAL_RCC_UART9_CLK_ENABLE();
+//	__HAL_RCC_GPIOD_CLK_ENABLE();
+//	__HAL_RCC_UART9_CLK_ENABLE();
   
 	/* UART TX GPIO pin configuration  */
-	GPIO_InitStruct.Pin       = GPIO_PIN_15;
-	GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-	GPIO_InitStruct.Pull      = GPIO_PULLUP;
-	GPIO_InitStruct.Speed     = GPIO_SPEED_FAST;
-	GPIO_InitStruct.Alternate = GPIO_AF11_UART9;
+//	GPIO_InitStruct.Pin       = GPIO_PIN_15;
+//	GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
+//	GPIO_InitStruct.Pull      = GPIO_PULLUP;
+//	GPIO_InitStruct.Speed     = GPIO_SPEED_FAST;
+//	GPIO_InitStruct.Alternate = GPIO_AF11_UART9;
 
-	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+//	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
     
 	/* UART RX GPIO pin configuration  */
-	GPIO_InitStruct.Pin = GPIO_PIN_14;
-	GPIO_InitStruct.Alternate = GPIO_AF11_UART9;
+//	GPIO_InitStruct.Pin = GPIO_PIN_14;
+//	GPIO_InitStruct.Alternate = GPIO_AF11_UART9;
     
-	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-}
+//	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+//}
 #endif /* TECSGEN */
 #endif /* TOPPERS_MACRO_ONLY */
 
