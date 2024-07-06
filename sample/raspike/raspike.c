@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <syssvc/serial.h>
 #include <serial/serial.h>
 #include <spike/hub/system.h>
 #include <spike/hub/battery.h>
@@ -741,6 +742,15 @@ static uint8_t raspike2_image[5][5] = {
   { 60, 60,  0, 60,  0}
 };
 
+/* Start Up Image*/
+static uint8_t raspike2_startup_image[5][5] = {
+  {  0,  0,  0,  0,  0},
+  {  0,100,  0, 80,  0},
+  {100,  0, 90,  0, 60},
+  {  0,100,  0, 80,  0},
+  {  0,  0,  0, 0,   0}
+};
+
 
 
 
@@ -753,7 +763,7 @@ void main_task(intptr_t exinf)
   // 1秒待たせる
   dly_tsk(1000000);
 
-  hub_display_image((uint8_t*)raspike2_image);
+  //hub_display_image((uint8_t*)raspike2_image);
 
   /* command handling*/
   RasPikePort port;
@@ -761,13 +771,43 @@ void main_task(intptr_t exinf)
   unsigned char data_size;
   char buf[255];
 
+
+  hub_display_image((uint8_t*)raspike2_startup_image);
+
   // Hand Shake
   while (1) {
 //    wait_read(buf,1);
     serial_rea_dat(SIO_USB_PORTID, buf, 1); 
-    hub_display_number(buf[0]);
-    if ( buf[0] == RP_CMD_INIT ) break;
+    //hub_display_number(buf[0]);
+    if ( buf[0] == RP_CMD_INIT ) {
+      serial_rea_dat(SIO_USB_PORTID, buf, 1); 
+      if ( buf[0] == RP_CMD_INIT_MAGIC ) {
+        break;
+      }
+        //hub_display_number(buf[0]);
+    }
   }
+  
+  // send INIT and version
+
+  // version is given by -D option
+#ifndef SPIKE_EXPECTED_VERSION_MAJOR
+#define SPIKE_EXPECTED_VERSION_MAJOR 0
+#endif
+#ifndef SPIKE_EXPECTED_VERSION_MINOR
+#define SPIKE_EXPECTED_VERSION_MINOR 0
+#endif
+#ifndef SPIKE_EXPECTED_VERSION_PATCH
+#define SPIKE_EXPECTED_VERSION_PATCH 0
+#endif
+
+  buf[0] = RP_CMD_INIT;
+  buf[1] = RP_CMD_INIT_MAGIC;
+  buf[2] = SPIKE_EXPECTED_VERSION_MAJOR;
+  buf[3] = SPIKE_EXPECTED_VERSION_MINOR;
+  buf[4] = SPIKE_EXPECTED_VERSION_PATCH;
+
+  serial_wri_dat(SIO_USB_PORTID,buf,5);
 
   memset(fgDevices,0,sizeof(fgDevices));
 
