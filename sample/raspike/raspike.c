@@ -522,20 +522,24 @@ static void process_motor_cmd(RasPikePort port, const int cmd_id, const char *pa
       RP_ASSERT(fgDevices[port].config == RP_CMD_TYPE_MOTOR, 65);
       pbio_error_t err = pup_motor_stop(fgDevices[port].device);
       RP_ASSERT(err == PBIO_SUCCESS,66);
+      send_ack(port,cmd_id,1);
     }
     break;  
     case RP_CMD_ID_MOT_STP_BRK:
     {
       RP_ASSERT(fgDevices[port].config == RP_CMD_TYPE_MOTOR, 67);
       pbio_error_t err = pup_motor_brake(fgDevices[port].device);
-      RP_ASSERT(err == PBIO_SUCCESS,68);     
+      RP_ASSERT(err == PBIO_SUCCESS,68);
+      send_ack(port,cmd_id,1);
+     
     }
     break;
     case RP_CMD_ID_MOT_STP_HLD:
     {
       RP_ASSERT(fgDevices[port].config == RP_CMD_TYPE_MOTOR, 69);
       pbio_error_t err = pup_motor_hold(fgDevices[port].device);
-      RP_ASSERT(err == PBIO_SUCCESS,70);     
+      RP_ASSERT(err == PBIO_SUCCESS,70);
+      send_ack(port,cmd_id,1);
     }
     break;
     case RP_CMD_ID_MOT_SET_DTY:
@@ -552,7 +556,7 @@ static void process_motor_cmd(RasPikePort port, const int cmd_id, const char *pa
       RPProtocolParamMotorValue *pm = (RPProtocolParamMotorValue *)param;
       pup_motor_set_duty_limit(fgDevices[port].device,pm->val);
       // RestoreLimit is void
-      send_ack(port,cmd_id,0);
+      send_ack(port,cmd_id,1);
     }
     break;
 
