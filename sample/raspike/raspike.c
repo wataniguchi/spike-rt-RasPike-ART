@@ -48,6 +48,7 @@ typedef struct {
   void *device;
   unsigned char config;
   unsigned char next_cmd;
+  unsigned char sub_cmd; // for motor reset
 } RPDevice;
 
 static RPDevice fgDevices[RP_MAX_DEVICES] = {0};
@@ -141,6 +142,7 @@ static void update_port(RasPikePort port, const int cmd_id,char *data, size_t da
 {
   lock_status();
   fgCurrentStatus.ports[port].cmd = (char)cmd_id;
+  fgCurrentStatus.ports[port].port = port;
   memset(fgCurrentStatus.ports[port].data,0,sizeof(fgCurrentStatus.ports[port].data));
   if ( data ) {
     memcpy(fgCurrentStatus.ports[port].data,data,data_size);
@@ -154,6 +156,7 @@ static void update_port_config(RasPikePort port, const int type, void *device)
   RP_ASSERT(port >=0 && port <= 5, 10);
   fgDevices[port].config = type;
   fgDevices[port].device = device;
+
 }
 
 static void update_device_cmd(RasPikePort port, const int cmd_id, char *data, size_t data_size)
@@ -250,11 +253,22 @@ void update_port_device_forcesensor(unsigned char cmd_id,pup_device_t *dev,RPPro
 
 }
 
-void update_port_device_motor(unsigned char cmd_id,pup_motor_t *dev,RPProtocolPortStatus *status)
+void update_port_device_motor(unsigned char cmd_id,unsigned char sub_cmd,pup_motor_t *dev,RPProtocolPortStatus *status)
 {
   // setupする前にgetするとSPIKEが死んでしまう
   if ( cmd_id != RP_CMD_ID_MOT_STU ) 
     return;
+
+  if ( sub_cmd == RP_CMD_ID_MOT_RST ) {
+      int32_t success = 0;
+      pbio_error_t err = pup_motor_reset_count(dev);
+      if ( err == PBIO_SUCCESS ) {
+        success = 1;
+        // lock status and modify count of the motor to ensure reset is executed
+      } 
+      send_ack(status->port,RP_CMD_ID_MOT_RST,success);
+  }
+
   int32_t count = pup_motor_get_count(dev);
   int32_t speed = pup_motor_get_speed(dev);
   int16_t pow   = (int16_t)pup_motor_get_power(dev);
@@ -289,6 +303,7 @@ void update_port_device(RPDevice *device,RPProtocolPortStatus *status)
   }
   unsigned char cmd_id = status->cmd;
   unsigned char next_cmd = device->next_cmd;
+  unsigned char sub_cmd = device->sub_cmd;
 
   /* 遅延コマンドの処理。遅延コマンドが指定されていた場合は、それに上書きする*/
   if (next_cmd && next_cmd != cmd_id) {
@@ -305,7 +320,9 @@ void update_port_device(RPDevice *device,RPProtocolPortStatus *status)
       update_port_device_forcesensor(cmd_id,(pup_device_t*)dev,status);
       break;
     case RP_CMD_TYPE_MOTOR:
-      update_port_device_motor(cmd_id,(pup_motor_t*)dev,status);
+      update_port_device_motor(cmd_id,sub_cmd,(pup_motor_t*)dev,status);
+      // clear sub_cmd
+      device->sub_cmd = 0;
       break;
     case RP_CMD_TYPE_US:
       update_port_device_ultrasonicsensor(cmd_id,(pup_device_t*)dev,status);
@@ -483,6 +500,7 @@ static void process_motor_cmd(RasPikePort port, const int cmd_id, const char *pa
     case RP_CMD_ID_MOT_RST:
     {
       RP_ASSERT(fgDevices[port].config == RP_CMD_TYPE_MOTOR, 62);
+      /* Original
       int32_t success = 0;
       pbio_error_t err = pup_motor_reset_count(fgDevices[port].device);
       if ( err == PBIO_SUCCESS ) {
@@ -497,6 +515,9 @@ static void process_motor_cmd(RasPikePort port, const int cmd_id, const char *pa
         // no need to lock. just send ack.
         send_ack(port,cmd_id,success);
       }
+      */
+      /* delayed reset version to ensure counter is reset*/
+      fgDevices[port].sub_cmd = RP_CMD_ID_MOT_RST;
       // Send port status immediately as acknowledgement
     }
     break;
@@ -814,6 +835,10 @@ void main_task(intptr_t exinf)
   serial_wri_dat(SIO_USB_PORTID,buf,5);
 
   memset(fgDevices,0,sizeof(fgDevices));
+
+  for (int i=0 ; i < RP_MAX_DEVICES; i++ ){
+    fgCurrentStatus.ports[i].port = i;
+  }
 
   /* start notification */
   sta_cyc(APP_NOTIFY_CYC);
