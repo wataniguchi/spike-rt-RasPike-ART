@@ -259,14 +259,16 @@ void update_port_device_motor(unsigned char cmd_id,unsigned char sub_cmd,pup_mot
   if ( cmd_id != RP_CMD_ID_MOT_STU ) 
     return;
 
+/* ここでリセットのAckを返すと、リセットしてすぐにカウントを取った時に前の情報が残っている可能性があるので、ackの位置を変更する*/
   if ( sub_cmd == RP_CMD_ID_MOT_RST ) {
-      int32_t success = 0;
+//      int32_t success = 0;
+/* リセットだけは行う*/
       pbio_error_t err = pup_motor_reset_count(dev);
-      if ( err == PBIO_SUCCESS ) {
-        success = 1;
+//      if ( err == PBIO_SUCCESS ) {
+//        success = 1;
         // lock status and modify count of the motor to ensure reset is executed
-      } 
-      send_ack(status->port,RP_CMD_ID_MOT_RST,success);
+//      } 
+//      send_ack(status->port,RP_CMD_ID_MOT_RST,success);
   }
 
   int32_t count = pup_motor_get_count(dev);
@@ -321,8 +323,6 @@ void update_port_device(RPDevice *device,RPProtocolPortStatus *status)
       break;
     case RP_CMD_TYPE_MOTOR:
       update_port_device_motor(cmd_id,sub_cmd,(pup_motor_t*)dev,status);
-      // clear sub_cmd
-      device->sub_cmd = 0;
       break;
     case RP_CMD_TYPE_US:
       update_port_device_ultrasonicsensor(cmd_id,(pup_device_t*)dev,status);
@@ -745,11 +745,28 @@ static void process_cmd(RasPikePort port, const int cmd_id, char *param)
   }
 }
 
+/* コマンドによっては、ステータスを返した後にackを返す必要があるものがある
+(モータのリセット)。そのようなものはここで返す*/
+void send_delayed_ack(RPDevice *devices, int num)
+{
+  for (int i = 0; i < num; i++ ) {
+    RPDevice *dev = devices+i;
+    if (dev->sub_cmd == RP_CMD_ID_MOT_RST) {
+      //　成功しか返せない
+      send_ack(i,RP_CMD_ID_MOT_RST,1);
+      // clear
+      dev->sub_cmd = 0;
+    }
+  }
+}
+
 static void notify_status(void)
 {
   update_hub_status(&fgCurrentStatus);
   update_port_devices(fgDevices,RP_MAX_DEVICES,&fgCurrentStatus);
   raspike_send_data(RP_PORT_NONE,RP_CMD_ID_ALL_STATUS,(const char*)&fgCurrentStatus,sizeof(fgCurrentStatus));
+  send_delayed_ack(fgDevices,RP_MAX_DEVICES);
+
 }
 
 
