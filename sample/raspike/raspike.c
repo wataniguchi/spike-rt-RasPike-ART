@@ -137,7 +137,7 @@ static int raspike_receive_data(char *buf, size_t size , RasPikePort *port, unsi
 }
 
 
-
+#if 0
 static void update_port(RasPikePort port, const int cmd_id,char *data, size_t data_size)
 {
   lock_status();
@@ -149,6 +149,7 @@ static void update_port(RasPikePort port, const int cmd_id,char *data, size_t da
   }
   unlock_status();
 }
+#endif
 
 static void update_port_config(RasPikePort port, const int type, void *device)
 {
@@ -289,10 +290,16 @@ void update_port_device_motor(unsigned char cmd_id,unsigned char sub_cmd,pup_mot
 
 void update_port_device_ultrasonicsensor(unsigned char cmd_id,pup_device_t *dev,RPProtocolPortStatus *status)
 {
-  static int count = 0;
-  if ( (count++ % 10) != 0 ) return;
-  *(int32_t*)(status->data+RP_US_INDEX_DISTANCE) = pup_ultrasonic_sensor_distance(dev);
-  *(bool *)(status->data+RP_US_INDEX_PRESENCE) = pup_ultrasonic_sensor_presence(dev);
+//  static int count = 0;
+//  if ( (count++ % 10) != 0 ) return;
+  int32_t distance = pup_ultrasonic_sensor_distance(dev);
+  // calling presence break distance to 0. so do not support presence 
+  //bool presence = pup_ultrasonic_sensor_presence(dev);
+//  hub_display_number(distance);
+  lock_status();
+  *(int32_t*)(status->data+RP_US_INDEX_DISTANCE) = distance;
+  //*(bool *)(status->data+RP_US_INDEX_PRESENCE) = presence;
+  unlock_status();
 }
 
 
@@ -325,7 +332,8 @@ void update_port_device(RPDevice *device,RPProtocolPortStatus *status)
       update_port_device_motor(cmd_id,sub_cmd,(pup_motor_t*)dev,status);
       break;
     case RP_CMD_TYPE_US:
-      update_port_device_ultrasonicsensor(cmd_id,(pup_device_t*)dev,status);
+//      updading ultrasonic is executed by another task
+//      update_port_device_ultrasonicsensor(cmd_id,(pup_device_t*)dev,status);
       break;    
     default:
       break;
@@ -339,7 +347,7 @@ void update_port_devices(RPDevice *devices, int num, RPProtocolSpikeStatus *stat
   int i;
   lock_status();
   for ( i = 0 ; i < num; i++ ) {
-    RPDevice *dev = devices[i].device;
+    void *dev = devices[i].device;
     if ( dev ) {
 //      hub_display_number(i);
       update_port_device(devices+i,status->ports+i);
@@ -347,6 +355,19 @@ void update_port_devices(RPDevice *devices, int num, RPProtocolSpikeStatus *stat
   }
   unlock_status();
 }
+
+void update_ultrasonicsensor_port_devices(RPDevice *devices, int num, RPProtocolSpikeStatus *status)
+{
+  int i;
+  for ( i = 0 ; i < num; i++ ) {
+    void *dev = devices[i].device;
+    if ( dev && devices[i].config == RP_CMD_TYPE_US ) {
+//      hub_display_number(i);
+      update_port_device_ultrasonicsensor((status->ports+i)->cmd, dev, status->ports+i);
+    }
+  }
+}
+
 
 
 
@@ -599,6 +620,7 @@ static void process_ultrasonic_sensor_cmd(RasPikePort port, const int cmd_id, co
         if ( device ) {
           success = 1;
           update_port_config(port,RP_CMD_TYPE_US,device);
+          sta_cyc(APP_SONER_CYC);
         } 
         // Send port status immediately as acknowledgement
         send_ack(port,cmd_id,success);
@@ -878,4 +900,12 @@ void notify_task(intptr_t exinf)
 {
   notify_status();
   ext_tsk();
+}
+
+/* soner sensor task*/
+void soner_task(intptr_t exinf)
+{
+  update_ultrasonicsensor_port_devices(fgDevices,RP_MAX_DEVICES,&fgCurrentStatus);
+  ext_tsk();
+
 }
