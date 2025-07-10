@@ -182,6 +182,9 @@ static void send_ack(RasPikePort port, const char cmd_id, int32_t data)
   raspike_send_data(port,RP_CMD_ID_ACK,(char*)send_data,sizeof(send_data));
 }
 
+/* IMU用の配列 0:ロール(x) 1:ピッチ(y) 2:ヨー(z) */
+float ang[3] = {0}; // 角度(角位置)
+float angv_offset[3] = {0}; // 角速度オフセット
 
 void update_hub_status(RPProtocolSpikeStatus *status)
 {
@@ -192,6 +195,9 @@ void update_hub_status(RPProtocolSpikeStatus *status)
   status->button = button;
   hub_imu_get_angular_velocity(status->angular_velocity);
   hub_imu_get_acceleration(status->acceleration);
+  status->angular[0] = ang[0];
+  status->angular[1] = ang[1];
+  status->angular[2] = ang[2];
 }
 
 void update_port_device_colorsensor(unsigned char cmd_id,pup_device_t *dev,RPProtocolPortStatus *status)
@@ -728,6 +734,9 @@ static void process_hub_cmd(RasPikePort port, const int cmd_id, const char *para
     case RP_CMD_ID_HUB_SPK_STP:
       hub_speaker_stop();
       break;
+    case RP_CMD_ID_HUB_RST_ANG:
+      ang[0] = ang[1] = ang[2] = 0;
+      break;
 
     default:
       RP_ASSERT(fgDevices[port].device==0,99);
@@ -815,17 +824,40 @@ static uint8_t raspike2_startup_image[5][5] = {
   {  0,  0,  0, 0,   0}
 };
 
+/* Gyro sensor implementation is based upon              */
+/* https://qiita.com/koushiro/items/f6cc865e5b2e5b3dd662 */
+/* by @koushiro (Koushiro A)                             */
 
+void identify_angv_offset(float offset[3])
+{
+  float angv[3]; // IMU角速度 格納用配列
+
+  // オフセット同定 (1秒間で1000回測定して平均取る)
+  for(int i=0; i<1000; i++){
+    hub_imu_get_angular_velocity(angv); //角速度取得
+    offset[0] += angv[0];
+    offset[1] += angv[1];
+    offset[2] += angv[2];
+    dly_tsk(1*1000); // 1ms待機
+  }
+
+  // オフセットをサンプル取得回数で割る
+  offset[0] /= 1000;
+  offset[1] /= 1000;
+  offset[2] /= 1000;
+}
 
 
 void main_task(intptr_t exinf)
 {
+  dly_tsk(3*1000*1000); // wait 3 seconds
   hub_imu_init();
 
   serial_opn_por(SIO_USB_PORTID);
   serial_ctl_por(SIO_USB_PORTID,0);
-  // 1秒待たせる
-  dly_tsk(1000000);
+  // 1秒待ちながらIMUの各速度オフセットを同定する
+  identify_angv_offset(angv_offset);
+  sta_cyc(APP_GYRO_CYC);
 
   //hub_display_image((uint8_t*)raspike2_image);
 
@@ -908,4 +940,19 @@ void soner_task(intptr_t exinf)
   update_ultrasonicsensor_port_devices(fgDevices,RP_MAX_DEVICES,&fgCurrentStatus);
   ext_tsk();
 
+}
+
+/* gyro sensor task */
+void gyro_task(intptr_t exinf)
+{
+  float angv[3]; // IMU角速度 格納用配列
+
+  hub_imu_get_angular_velocity(angv);
+
+  // 角度(角位置)積算
+  ang[0] += (angv[0] - angv_offset[0]) * 0.001;
+  ang[1] += (angv[1] - angv_offset[1]) * 0.001;
+  ang[2] += (angv[2] - angv_offset[2]) * 0.001;
+
+  ext_tsk();
 }
