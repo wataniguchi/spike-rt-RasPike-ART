@@ -24,7 +24,7 @@
 #include <spike/pup/forcesensor.h>
 #include <spike/pup/ultrasonicsensor.h>
 
-
+#include "imu.h"
 #include "raspike.h"
 #define RP_DEFINE_CMD_SIZE
 #include "raspike_protocol_com.h"
@@ -195,9 +195,15 @@ void update_hub_status(RPProtocolSpikeStatus *status)
   status->button = button;
   hub_imu_get_angular_velocity(status->angular_velocity);
   hub_imu_get_acceleration(status->acceleration);
-  status->angular[0] = ang[0];
-  status->angular[1] = ang[1];
-  status->angular[2] = ang[2];
+  if (false) {
+    status->angular[0] = ang[0];
+    status->angular[1] = ang[1];
+    status->angular[2] = ang[2];
+  } else { // for test
+    status->angular[0] = pbio_imu_get_heading();
+    status->angular[1] = 0;
+    status->angular[2] = 0;
+  }
 }
 
 void update_port_device_colorsensor(unsigned char cmd_id,pup_device_t *dev,RPProtocolPortStatus *status)
@@ -856,8 +862,11 @@ void main_task(intptr_t exinf)
   serial_opn_por(SIO_USB_PORTID);
   serial_ctl_por(SIO_USB_PORTID,0);
   // 1秒待ちながらIMUの各速度オフセットを同定する
-  identify_angv_offset(angv_offset);
+  //identify_angv_offset(angv_offset);
   sta_cyc(APP_GYRO_CYC);
+  // 1秒待たせる
+  dly_tsk(1000000);
+  pbio_imu_set_configuration((float[]){-1.121351, -1.045859, -0.310124}, (float[]){360.4466, 356.8024, 363.3352}, (float[]){10006.3, -9677.182, 9810.528, -9964.881, 9716.309, -10019.27});
 
   //hub_display_image((uint8_t*)raspike2_image);
 
@@ -945,14 +954,16 @@ void soner_task(intptr_t exinf)
 /* gyro sensor task */
 void gyro_task(intptr_t exinf)
 {
+  imu_handle_frame_data_func();
+
   float angv[3]; // IMU角速度 格納用配列
 
   hub_imu_get_angular_velocity(angv);
 
   // 角度(角位置)積算
-  ang[0] += (angv[0] - angv_offset[0]) * 0.001;
-  ang[1] += (angv[1] - angv_offset[1]) * 0.001;
-  ang[2] += (angv[2] - angv_offset[2]) * 0.001;
+  ang[0] += (angv[0] - angv_offset[0]) * PERIOD_GYRO_TSK / 1000000;
+  ang[1] += (angv[1] - angv_offset[1]) * PERIOD_GYRO_TSK / 1000000;
+  ang[2] += (angv[2] - angv_offset[2]) * PERIOD_GYRO_TSK / 1000000;
 
   ext_tsk();
 }

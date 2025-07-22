@@ -21,6 +21,9 @@
 
 #define MAIN_STACK_SIZE 4096    /* タスクのスタックサイズ */
 
+/* task periods in micro seconds */
+#define PERIOD_GYRO_TSK      (1 * 1000)
+
 /*
  *  関数のプロトタイプ宣言
  */

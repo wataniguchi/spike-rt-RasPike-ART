@@ -1,3 +1,5 @@
+APPL_COBJS += pbio/geometry.o imu.o
+
 VERSION=$(shell cat ../../sample/raspike/spike_version)
 
 MAJOR := $(word 1,$(subst ., ,$(VERSION)))
