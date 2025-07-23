@@ -183,26 +183,29 @@ const float standard_gravity = 9806.65f;
  * @param [in]  angular_velocity_bias
  *  Initial bias for angular velocity measurements along x, y, and z immediately after boot.
  *  Default values are {0, 0, 0} deg/s.
- * @param [in]  ngular_velocity_scale
+ * @param [in]  angular_velocity_scale
  *  Scale adjustment for x, y, and z rotation to account for manufacturing differences.
  *  Default values are {360, 360, 360} deg/s
- * @param [in]  acceleration_correction
+ * @param [in]  gravity_pos
+ * @param [in]  gravity_neg
+ * (acceleration_correction)
  *  Scale adjustment for x, y, and z gravity magnitude in both directions to account for manufacturing differences.
- *  Default values are {9806.65, -9806.65, 9806.65, -9806.65, 9806.65, -9806.65} mm/s².
+ *  Default values are {9806.65, 9806.65, 9806.65} and {-9806.65, -9806.65, -9806.65} mm/s².
  */
-void pbio_imu_set_configuration(const float angular_velocity_bias[3], const float angular_velocity_scale[3], const float acceleration_correction[6]) {
-    gyro_bias.x = angular_velocity_bias[0];
-    gyro_bias.y = angular_velocity_bias[1];
-    gyro_bias.z = angular_velocity_bias[2];
-    config_angular_velocity_scale.x = angular_velocity_scale[0];
-    config_angular_velocity_scale.y = angular_velocity_scale[1];
-    config_angular_velocity_scale.z = angular_velocity_scale[2];
-    config_gravity_pos.x = acceleration_correction[0];
-    config_gravity_neg.x = acceleration_correction[1];
-    config_gravity_pos.y = acceleration_correction[2];
-    config_gravity_neg.y = acceleration_correction[3];
-    config_gravity_pos.z = acceleration_correction[4];
-    config_gravity_neg.z = acceleration_correction[5];
+void pbio_imu_set_configuration(pbio_geometry_xyz_t *angular_velocity_bias, pbio_geometry_xyz_t *angular_velocity_scale,
+    pbio_geometry_xyz_t *gravity_pos, pbio_geometry_xyz_t *gravity_neg) {
+    gyro_bias.x = angular_velocity_bias->x;
+    gyro_bias.y = angular_velocity_bias->y;
+    gyro_bias.z = angular_velocity_bias->z;
+    config_angular_velocity_scale.x = angular_velocity_scale->x;
+    config_angular_velocity_scale.y = angular_velocity_scale->y;
+    config_angular_velocity_scale.z = angular_velocity_scale->z;
+    config_gravity_pos.x = gravity_pos->x;
+    config_gravity_pos.y = gravity_pos->y;
+    config_gravity_pos.z = gravity_pos->z;
+    config_gravity_neg.x = gravity_neg->x;
+    config_gravity_neg.y = gravity_neg->y;
+    config_gravity_neg.z = gravity_neg->z;
 }
 
 

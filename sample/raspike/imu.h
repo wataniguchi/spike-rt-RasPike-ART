@@ -20,7 +20,8 @@
 
 void imu_handle_frame_data_func(void);
 
-void pbio_imu_set_configuration(const float angular_velocity_bias[3], const float angular_velocity_scale[3], const float acceleration_correction[6]);
+void pbio_imu_set_configuration(pbio_geometry_xyz_t *angular_velocity_bias, pbio_geometry_xyz_t *angular_velocity_scale,
+    pbio_geometry_xyz_t *gravity_pos, pbio_geometry_xyz_t *gravity_neg);
 
 pbio_error_t pbio_imu_set_base_orientation(pbio_geometry_xyz_t *x_axis, pbio_geometry_xyz_t *z_axis);
 
