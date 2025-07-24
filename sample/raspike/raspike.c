@@ -200,9 +200,11 @@ void update_hub_status(RPProtocolSpikeStatus *status)
     status->angular[1] = ang[1];
     status->angular[2] = ang[2];
   } else { // for test
-    status->angular[0] = pbio_imu_get_heading();
-    status->angular[1] = 0;
-    status->angular[2] = 0;
+    pbio_geometry_xyz_t tilt;
+    pbio_imu_get_tilt_vector(&tilt);
+    status->angular[0] = tilt.x;
+    status->angular[1] = tilt.y;
+    status->angular[2] = tilt.z;
   }
 }
 
@@ -867,8 +869,8 @@ void main_task(intptr_t exinf)
   // 1秒待たせる
   dly_tsk(1000000);
   //pbio_imu_set_configuration((float[]){-1.61239, -1.485107, -0.2945677}, (float[]){360.4545, 356.9208, 363.781}, (float[]){10006.3, -9677.182, 9810.528, -9964.881, 9716.309, -10019.27});
-  pbio_imu_set_configuration((float[]){-1.637569, -1.506648, -0.3262218}, (float[]){360.86, 356.9506, 364.1307},
-    (float[]){10022.32, 9825.246, 9766.568}, (float[]){-9653.586, -9956.896, -9968.43});
+  //pbio_imu_set_configuration((float[]){-1.637569, -1.506648, -0.3262218}, (float[]){360.86, 356.9506, 364.1307},
+  //  (float[]){10022.32, 9825.246, 9766.568}, (float[]){-9653.586, -9956.896, -9968.43});
 
   //hub_display_image((uint8_t*)raspike2_image);
 
