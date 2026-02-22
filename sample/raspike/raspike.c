@@ -733,16 +733,29 @@ static void process_hub_cmd(RasPikePort port, const int cmd_id, const char *para
       break;
     case RP_CMD_ID_HUB_IMU_INIT:
       {
-        float gyro_stationary_threshold = *(float*)(param+RP_HUB_IMU_INIT_INDEX_GYRO_STAT_THRESH);
-        float accel_stationary_threshold = *(float*)(param+RP_HUB_IMU_INIT_INDEX_ACCEL_STAT_THRESH);
-        float angular_velocity_bias[3];
-        memcpy(angular_velocity_bias,param+RP_HUB_IMU_INIT_INDEX_ANGV_BIAS,3*sizeof(float));
-        float angular_velocity_scale[3];
-        memcpy(angular_velocity_scale,param+RP_HUB_IMU_INIT_INDEX_ANGV_SCALE,3*sizeof(float));
-        float acceleration_correction[6];
-        memcpy(acceleration_correction,param+RP_HUB_IMU_INIT_INDEX_ACCEL_CORRECT,6*sizeof(float));
-        raspike_imu_initialize(gyro_stationary_threshold, accel_stationary_threshold,
-          angular_velocity_bias, angular_velocity_scale, acceleration_correction);
+        uint8_t init_type = *(uint8_t*)(param+RP_HUB_IMU_INIT_INDEX_TYPE);
+        switch(init_type) {
+          case RP_HUB_IMU_INIT_CSTM:
+            {
+              float gyro_stationary_threshold = *(float*)(param+RP_HUB_IMU_INIT_INDEX_GYRO_STAT_THRESH);
+              float accel_stationary_threshold = *(float*)(param+RP_HUB_IMU_INIT_INDEX_ACCEL_STAT_THRESH);
+              float angular_velocity_bias[3];
+              memcpy(angular_velocity_bias,param+RP_HUB_IMU_INIT_INDEX_ANGV_BIAS,3*sizeof(float));
+              float angular_velocity_scale[3];
+              memcpy(angular_velocity_scale,param+RP_HUB_IMU_INIT_INDEX_ANGV_SCALE,3*sizeof(float));
+              float acceleration_correction[6];
+              memcpy(acceleration_correction,param+RP_HUB_IMU_INIT_INDEX_ACCEL_CORRECT,6*sizeof(float));
+              raspike_imu_initialize(gyro_stationary_threshold, accel_stationary_threshold,
+                angular_velocity_bias, angular_velocity_scale, acceleration_correction);
+            }
+            break;
+          case RP_HUB_IMU_INIT_FLSH:
+            raspike_imu_initialize_by_flash();
+            break;
+          default:
+            raspike_imu_initialize_by_default();
+            break;
+        }
       }
       break;
 

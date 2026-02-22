@@ -14,6 +14,8 @@
  *   lib/pbio/src/geometry.c -> sample/raspike/pbio/geometry.c
 */
 #include <kernel.h>
+#include "kernel_cfg.h"
+#include <t_syslog.h>
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
@@ -521,7 +523,40 @@ static bool pbio_imu_setting_close_to_360(float value) {
  */
 pbio_error_t raspike_imu_initialize(float gyro_stationary_threshold, float accel_stationary_threshold,
     float angular_velocity_bias[3], float angular_velocity_scale[3], float acceleration_correction[6]) {
-    
+
+#ifndef TOPPERS_OMIT_SYSLOG
+    syslog(LOG_NOTICE, "** Initializing IMU with user configuration values **");
+    /* Static buffer ensures they are not destroyed before syslog sends the message to serial port */
+    static char gyro_thresh[32], accel_thresh[32];
+    static char angv_bias0[32], angv_bias1[32], angv_bias2[32];
+    static char angv_scale0[32], angv_scale1[32], angv_scale2[32];
+    static char accel_corr0[32], accel_corr1[32], accel_corr2[32], accel_corr3[32], accel_corr4[32], accel_corr5[32];
+    FLOAT8_TO_STR(gyro_thresh, gyro_stationary_threshold);
+    FLOAT8_TO_STR(accel_thresh, accel_stationary_threshold);
+    FLOAT8_TO_STR(angv_bias0, angular_velocity_bias[0]);
+    FLOAT8_TO_STR(angv_bias1, angular_velocity_bias[1]);
+    FLOAT8_TO_STR(angv_bias2, angular_velocity_bias[2]);
+    FLOAT8_TO_STR(angv_scale0, angular_velocity_scale[0]);
+    FLOAT8_TO_STR(angv_scale1, angular_velocity_scale[1]);
+    FLOAT8_TO_STR(angv_scale2, angular_velocity_scale[2]);
+    FLOAT8_TO_STR(accel_corr0, acceleration_correction[0]);
+    FLOAT8_TO_STR(accel_corr1, acceleration_correction[1]);
+    FLOAT8_TO_STR(accel_corr2, acceleration_correction[2]);
+    FLOAT8_TO_STR(accel_corr3, acceleration_correction[3]);
+    FLOAT8_TO_STR(accel_corr4, acceleration_correction[4]);
+    FLOAT8_TO_STR(accel_corr5, acceleration_correction[5]);
+    syslog(LOG_NOTICE, "gyro_stationary_threshold: %s", gyro_thresh);
+    syslog(LOG_NOTICE, "accel_stationary_threshold: %s", accel_thresh);
+    syslog(LOG_NOTICE, "angular_velocity_bias: %s %s %s",
+        angv_bias0, angv_bias1, angv_bias2);
+    syslog(LOG_NOTICE, "angular_velocity_scale: %s %s %s",
+        angv_scale0, angv_scale1, angv_scale2);
+    syslog(LOG_NOTICE, "acceleration_correction: %s %s %s",
+        accel_corr0, accel_corr1, accel_corr2);
+    syslog(LOG_NOTICE, "                         %s %s %s",
+        accel_corr3, accel_corr4, accel_corr5);
+#endif /* TOPPERS_OMIT_SYSLOG */
+
     if (gyro_stationary_threshold < 0 ||
         accel_stationary_threshold < 0) {
         return PBIO_ERROR_INVALID_ARG;
@@ -551,6 +586,29 @@ pbio_error_t raspike_imu_initialize(float gyro_stationary_threshold, float accel
     return PBIO_SUCCESS;
 }
 
+/**
+ * Initialize the IMU settings with default values that should work for most hubs.
+ *
+ * @returns ::PBIO_ERROR_INVALID_ARG if a value is out of range, otherwise ::PBIO_SUCCESS.
+ */
+pbio_error_t raspike_imu_initialize_by_default(void) {
+    float default_angular_velocity_bias[3] = {0.0f, 0.0f, 0.0f};
+    float default_angular_velocity_scale[3] = {360.0f, 360.0f, 360.0f};
+    float default_acceleration_correction[6] = {standard_gravity, -standard_gravity,
+        standard_gravity, -standard_gravity, standard_gravity, -standard_gravity};
+    return raspike_imu_initialize(2.0f, 2500.0f, default_angular_velocity_bias,
+        default_angular_velocity_scale, default_acceleration_correction);
+}
+
+/**
+ * Initialize the IMU settings with values stored in flash memory.
+ *
+ * @returns ::PBIO_ERROR_INVALID_ARG if a value is out of range, otherwise ::PBIO_SUCCESS.
+ */
+pbio_error_t raspike_imu_initialize_by_flash(void) {
+    /* to be implemented */
+    return raspike_imu_initialize_by_default();
+}
 
 /**
  * Gets the cached IMU angular velocity in deg/s, compensated for gyro bias.
