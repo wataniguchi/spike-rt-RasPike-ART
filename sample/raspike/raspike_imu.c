@@ -600,14 +600,138 @@ pbio_error_t raspike_imu_initialize_by_default(void) {
         default_angular_velocity_scale, default_acceleration_correction);
 }
 
+extern pbio_error_t pbdrv_block_device_get_data(uint8_t **data);
+#define PBSYS_CONFIG_STORAGE_NUM_SLOTS              (5)
+#define PBSYS_CONFIG_STORAGE_USER_DATA_SIZE         (512)
+
+/**
+ * Persistent IMU settings. All data types are little-endian.
+ */
+typedef struct {
+    /**
+     * Flags indicating which persistent settings have been updated by
+     * the user or a calibration routine. In settings setter functions, this
+     * flag value is used to indicate which values are being set.
+     */
+    uint32_t flags;
+    /** Angular velocity threshold below which the IMU is considered stationary, in deg/s. */
+    float gyro_stationary_threshold;
+    /** Acceleration threshold below which the IMU is considered stationary, in mm/s^2. */
+    float accel_stationary_threshold;
+    /** Positive acceleration values */
+    pbio_geometry_xyz_t gravity_pos;
+    /** Negative acceleration values */
+    pbio_geometry_xyz_t gravity_neg;
+    /** Angular velocity stationary bias initially used on boot */
+    pbio_geometry_xyz_t angular_velocity_bias_start;
+    /** Angular velocity scale (unadjusted measured degrees per whole rotation) */
+    pbio_geometry_xyz_t angular_velocity_scale;
+    /**
+     * Additional correction for 1D rotation in the user frame. Works on top
+     * of other calibration settings and values. Only used for 1D heading.
+     *
+     * This setting may be removed in the future when removing 1D support.
+     */
+    float heading_correction_1d;
+} pbio_imu_persistent_settings_t;
+
+/**
+ * System settings. All data types are little-endian.
+ */
+typedef struct _pbsys_storage_settings_t {
+    /** System setting flags. */
+    uint32_t flags;
+    //#if PBIO_CONFIG_IMU
+    pbio_imu_persistent_settings_t imu_settings;
+    //#endif
+} pbsys_storage_settings_t;
+
+/**
+ * Information about one code slot.
+ *
+ * A size of 0 means that this slot is not used. The offset indicates where
+ * the program is stored in user storage.
+ *
+ * Code slots are *not* stored chronologically by slot id. Instead they are
+ * stored consecutively as they are received, with the newest program last.
+ *
+ * If a slot is already in use and a new program should be loaded into it,
+ * it is deleted by mem-moving any subsequent programs into its place, and
+ * appending the new program to be last again. Since a user is typically only
+ * iterating code in one slot, this is therefore usually the last stored
+ * program. This means memmoves happen very little, only when needed.
+ *
+ */
+typedef struct {
+    uint32_t offset;
+    uint32_t size;
+} pbsys_storage_slot_info_t;
+
+/**
+ * Map of loaded data. All data types are little-endian.
+ */
+typedef struct {
+    /**
+     * End-user read-write accessible data. Everything after this is also
+     * user-readable but not writable.
+     */
+    uint8_t user_data[PBSYS_CONFIG_STORAGE_USER_DATA_SIZE];
+    /**
+     * First 8 symbols of the git hash of the firmware version used to create
+     * this data map. If this does not match the version of the running
+     * firmware, user data will be reset to 0.
+     */
+    char stored_firmware_hash[8];
+    /**
+     * System settings. Settings will be reset to defaults when the firmware
+     * version changes due to an update.
+     */
+    pbsys_storage_settings_t settings;
+    /**
+     * Size and offset info for each slot.
+     */
+    pbsys_storage_slot_info_t slot_info[PBSYS_CONFIG_STORAGE_NUM_SLOTS];
+    /**
+     * Data of the application program (code + heap).
+     */
+    uint8_t program_data[] __attribute__((aligned(sizeof(void *))));
+} pbsys_storage_data_map_t;
+
 /**
  * Initialize the IMU settings with values stored in flash memory.
  *
  * @returns ::PBIO_ERROR_INVALID_ARG if a value is out of range, otherwise ::PBIO_SUCCESS.
  */
 pbio_error_t raspike_imu_initialize_by_flash(void) {
-    /* to be implemented */
-    return raspike_imu_initialize_by_default();
+    static pbsys_storage_data_map_t *map;
+    float acceleration_correction[6];
+
+    pbio_error_t err = pbdrv_block_device_get_data(&map);
+
+#ifndef TOPPERS_OMIT_SYSLOG
+    if (err != PBIO_SUCCESS) {
+        syslog(LOG_NOTICE, "Failed to read IMU calibration data from flash: %d", err);
+    } else {
+        syslog(LOG_NOTICE, "Successfully read IMU calibration data from flash.");
+    }
+#endif /* TOPPERS_OMIT_SYSLOG */
+
+    if (err != PBIO_SUCCESS) {
+        return raspike_imu_initialize_by_default();
+    }
+
+    acceleration_correction[0] = map->settings.imu_settings.gravity_pos.x;
+    acceleration_correction[1] = map->settings.imu_settings.gravity_neg.x;
+    acceleration_correction[2] = map->settings.imu_settings.gravity_pos.y;
+    acceleration_correction[3] = map->settings.imu_settings.gravity_neg.y;
+    acceleration_correction[4] = map->settings.imu_settings.gravity_pos.z;
+    acceleration_correction[5] = map->settings.imu_settings.gravity_neg.z;
+
+    return raspike_imu_initialize(map->settings.imu_settings.gyro_stationary_threshold,
+        map->settings.imu_settings.accel_stationary_threshold,
+        map->settings.imu_settings.angular_velocity_bias_start.values,
+        map->settings.imu_settings.angular_velocity_scale.values,
+        acceleration_correction);
 }
 
 /**
